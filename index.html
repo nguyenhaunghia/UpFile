@@ -103,7 +103,8 @@
     <input type="file" id="globalFileInput" style="display: none;" onchange="handleFileSelected(this)">
     <input type="hidden" id="currentProfileID">
 
-    <script src="script.js"></script>
+    <script src="common.js"></script>
+    <script src="dashboard.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -112,6 +113,7 @@
         });
 
         // --- RENDER DASHBOARD ---
+// --- RENDER DASHBOARD ---
         function renderDashboard(data) {
             const { Profile, SchoolYear, Folder, Subject, Block, Object: ObjectList, DocType, User } = data;
             const currentUser = JSON.parse(localStorage.getItem('upfile_user'));
@@ -136,11 +138,19 @@
 
                 const folderObj = Folder.find(f => f.FolderID == p.FolderID);
 
+                // ✨ LOGIC DEADLINE MỚI: Ưu tiên lấy từ Profile, nếu trống lấy từ Folder
+                let finalDeadline = null;
+                if (p.Deadline && p.Deadline.toString().trim() !== "") {
+                    finalDeadline = p.Deadline;
+                } else if (folderObj && folderObj.Deadline) {
+                    finalDeadline = folderObj.Deadline;
+                }
+
                 let item = {
                     ...p,
                     RoleContext: roleContext, 
                     SchoolYearName: findName(SchoolYear, 'SchoolYearID', p.SchoolYearID, 'SchoolYearName'),
-                    FolderName: findName(Folder, 'FolderID', p.FolderID, 'FolderName'),
+                    FolderName: folderObj ? folderObj.FolderName : '',
                     SubjectName: findName(Subject, 'SubjectID', p.SubjectID, 'SubjectName'),
                     BlockName: findName(Block, 'BlockID', p.BlockID, 'BlockName'),
                     ObjectName: findName(ObjectList, 'ObjectID', p.ObjectID, 'ObjectName'),
@@ -148,7 +158,7 @@
                     UserName: findName(User, 'UserID', p.AccountUpdate, 'Name'),
                     AccountEmail: findName(User, 'UserID', p.AccountUpdate, 'Account'),
                     isUploaded: p.FileID && p.FileID !== "",
-                    Deadline: folderObj && folderObj.Deadline ? folderObj.Deadline : null
+                    Deadline: finalDeadline // Đã được chốt chuẩn xác
                 };
 
                 if (isAdmin) {
@@ -447,7 +457,7 @@
                 } 
                 else if (item.RoleContext === 'uploader') {
                     if (isExpired) {
-                        actionBtns = isUploaded ? `${downloadBtn} <span class="status-expired">${svgLock} Đã khóa</span>` : `<span class="status-expired">${svgLock} Hết hạn</span>`;
+                        actionBtns = isUploaded ? `${downloadBtn} <span class="status-expired">${svgLock}</span>` : `<span class="status-expired">${svgLock}</span>`;
                     } else {
                         if (isUploaded) actionBtns = `${downloadBtn} <button class="btn-icon edit" title="Thay thế file khác" onclick="triggerDirectUpload('${item.ProfileID}')">${svgEdit}</button>`;
                         else actionBtns = `<button class="btn-icon upload" title="Nộp file" onclick="triggerDirectUpload('${item.ProfileID}')">${svgUpload}</button>`;
@@ -465,7 +475,7 @@
                         <td class="${showObject?'':'cell-hidden'}">${objCell}</td>
                         <td><span>${item.DocTypeName}</span>${item.Note ? `<br><small class="text-muted">📝 ${item.Note}</small>` : ''}</td>
                         ${showUserCol ? `<td>👤 ${item.UserName}</td>` : ''}
-                        <td style="font-size:0.85rem;">${statusHtml}${item.Deadline ? `<div class="text-muted" style="font-size:0.75rem;">Hạn: ${formatDate(item.Deadline)}</div>` : ''}</td>
+                        <td style="font-size:0.85rem;">${statusHtml}${item.Deadline ? `<div class="text-muted" style="font-size:0.65rem; margin-top: 5px;">${svgLock}${formatDate(item.Deadline)}</div>` : ''}</td>
                         <td><div class="cell-actions">${actionBtns}</div></td>
                     </tr>
                 `;
